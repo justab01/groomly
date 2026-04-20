@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import { PawPrint, Calendar, CreditCard, Mail, Check, ArrowRight, Phone, Shield, Zap, Users, TrendingUp, MessageSquare } from 'lucide-react'
+import { PawPrint, Calendar, CreditCard, Mail, Check, ArrowRight, Phone, Shield, Zap } from 'lucide-react'
 
-export default function HomePage() {
+export default function HonestDesignPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -15,9 +15,9 @@ export default function HomePage() {
               <span className="text-xl font-bold text-gray-900">Groomly</span>
             </div>
             <div className="flex items-center gap-4">
-              <Link href="#features" className="text-gray-600 hover:text-gray-900 font-medium hidden sm:block">Features</Link>
-              <Link href="#pricing" className="text-gray-600 hover:text-gray-900 font-medium hidden sm:block">Pricing</Link>
-              <Link href="/auth/signin" className="text-gray-600 hover:text-gray-900 font-medium hidden sm:block">Sign in</Link>
+              <Link href="/auth/signin" className="text-gray-600 hover:text-gray-900 font-medium hidden sm:block">
+                Sign in
+              </Link>
               <Link href="/auth/signin" className="bg-gray-900 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors">
                 Get Started
               </Link>
@@ -32,18 +32,14 @@ export default function HomePage() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 bg-white border border-gray-200 shadow-sm px-4 py-2 rounded-full text-sm text-gray-700 mb-8">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              Built for mobile groomers, not salons
-            </div>
-
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              The operating system for
-              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"> mobile dog grooming</span>
+              Booking software for
+              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"> mobile dog groomers</span>
             </h1>
 
             <p className="text-xl text-gray-600 mb-10 leading-relaxed max-w-2xl mx-auto">
-              Replace the spreadsheets, text messages, and missed appointments with one platform built for your business.
+              Built to replace the spreadsheets, text messages, and missed appointments.
+              Simple, affordable, and actually built for your business.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
@@ -66,41 +62,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Product Preview - Like Cal.com */}
-      <section className="py-12 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-200 p-8 md:p-12">
-            <div className="grid md:grid-cols-3 gap-6">
-              <PreviewCard
-                icon={Calendar}
-                metric="87%"
-                label="Fewer no-shows"
-                subtext="With deposit protection"
-              />
-              <PreviewCard
-                icon={TrendingUp}
-                metric="10+ hrs"
-                label="Saved weekly"
-                subtext="On admin tasks"
-              />
-              <PreviewCard
-                icon={MessageSquare}
-                metric="24/7"
-                label="Auto-reminders"
-                subtext="Clients never forget"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Features */}
-      <section id="features" className="py-24">
+      <section className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Everything you need</h2>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">What you get</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Built specifically for mobile groomers. Not a salon tool with a new coat of paint.
+              Everything you need to run your booking and payments. Nothing you don't.
             </p>
           </div>
 
@@ -108,113 +76,91 @@ export default function HomePage() {
             <FeatureCard
               icon={Calendar}
               iconBg="from-indigo-500 to-purple-500"
-              title="Smart Scheduling"
-              description="Online booking 24/7 with intelligent conflict detection. Never double-book a time slot again."
-              benefits={["Route optimization", "Buffer times between appointments", "Recurring bookings"]}
+              title="Online Booking"
+              description="Clients book appointments 24/7 from their phone. You get notified instantly. No more phone tag."
+              benefits={["Calendar sync", "Buffer times", "Recurring bookings"]}
             />
             <FeatureCard
               icon={CreditCard}
               iconBg="from-green-500 to-emerald-500"
-              title="Deposit Protection"
-              description="Require deposits upfront and reduce no-shows by up to 80%. Get paid faster, period."
-              benefits={["Card on file required", "Tap-to-pay at van", "Automatic receipts"]}
+              title="Deposits & Payments"
+              description="Require a deposit to book. Reduces no-shows dramatically. Tap-to-pay when you arrive."
+              benefits={["Card on file", "Automatic receipts", "Refund handling"]}
             />
             <FeatureCard
               icon={Mail}
               iconBg="from-blue-500 to-cyan-500"
-              title="Auto Reminders"
-              description="SMS and email reminders sent automatically. Your clients will actually remember their appointments."
-              benefits={["Custom templates", "Delivery tracking", "Two-way SMS replies"]}
+              title="Automated Reminders"
+              description="SMS and email reminders go out automatically. Clients show up. You don't have to think about it."
+              benefits={["Custom messages", "Delivery tracking", "Reply handling"]}
             />
             <FeatureCard
               icon={PawPrint}
               iconBg="from-orange-500 to-red-500"
               title="Pet Profiles"
-              description="Track breed, weight, behavior flags, and medical alerts. Every pet gets personalized care."
-              benefits={["Photo storage", "Grooming history", "Behavior & allergy alerts"]}
+              description="Track breed, weight, behavior notes, and medical alerts. Remember every client's preferences."
+              benefits={["Photo storage", "Grooming history", "Behavior flags"]}
             />
             <FeatureCard
               icon={Shield}
               iconBg="from-purple-500 to-pink-500"
-              title="Breed-Based Pricing"
-              description="Automatic pricing based on breed, coat condition, and weight. No more undercharging."
-              benefits={["Custom pricing rules", "Weight brackets", "Matting fees"]}
+              title="Smart Pricing"
+              description="Set different prices by breed, weight, or coat condition. Charge what you're worth."
+              benefits={["Breed multipliers", "Weight brackets", "Add-on services"]}
             />
             <FeatureCard
               icon={Zap}
               iconBg="from-yellow-500 to-orange-500"
-              title="Your Booking Page"
+              title="Your Own Booking Page"
               description="Get a custom link to share on Instagram, your website, everywhere. Your brand, your clients."
-              benefits={["Custom branding", "Your color scheme", "No competitor ads"]}
+              benefits={["Custom branding", "Your colors", "No competitor ads"]}
             />
           </div>
         </div>
       </section>
 
-      {/* Why This Exists - Like Fresha's approach */}
+      {/* Why this exists */}
       <section className="bg-gray-50 py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">Why Groomly exists</h2>
-              <div className="prose prose-lg text-gray-600">
-                <p className="mb-4">
-                  Most booking software was built for salons. You work out of a van.
-                  That's a fundamentally different business.
-                </p>
-                <p className="mb-4">
-                  You need route optimization, not a reception desk.
-                  You need deposit protection, not a waiting room.
-                  You need breed-based pricing, not a service menu.
-                </p>
-                <p>
-                  Groomly is built for mobile groomers, specifically.
-                  Nothing more, nothing less.
-                </p>
-              </div>
-
-              <div className="mt-8 grid grid-cols-2 gap-6">
-                <div className="bg-white p-4 rounded-xl border border-gray-200">
-                  <div className="text-2xl font-bold text-gray-900">$39</div>
-                  <div className="text-sm text-gray-600">per month</div>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-200">
-                  <div className="text-2xl font-bold text-gray-900">All features</div>
-                  <div className="text-sm text-gray-600">No tier limits</div>
-                </div>
-              </div>
-            </div>
-            <div className="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl p-8 min-h-[400px] flex items-center justify-center">
-              <div className="text-center">
-                <PawPrint className="h-24 w-24 text-indigo-600 mx-auto mb-4 opacity-50" />
-                <p className="text-gray-600 font-medium">Your branded booking page</p>
-                <p className="text-sm text-gray-500 mt-2">groomly.com/b/your-business</p>
-              </div>
-            </div>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">Why this exists</h2>
+          <div className="prose prose-lg mx-auto text-gray-600">
+            <p>
+              Most booking software was built for salons. You work out of a van.
+              That's a different business.
+            </p>
+            <p>
+              You need route optimization, not a reception desk.
+              You need deposit protection, not a waiting room.
+              You need breed-based pricing, not a service menu.
+            </p>
+            <p>
+              Groomly is built for mobile groomers, specifically.
+              Nothing more, nothing less.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* How It Works */}
+      {/* How it works */}
       <section className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Get started in minutes</h2>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">How it works</h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-12">
-            <Step number={1} title="Create account" description="Sign up in 2 minutes. No credit card needed to start your trial." />
-            <Step number={2} title="Add your services" description="Set up services, pricing, and availability. Import customers if you have them." />
-            <Step number={3} title="Share your link" description="Send clients your booking page. They book, you get notified. That's it." />
+            <Step number={1} title="Sign up" description="Create your account in 2 minutes. No credit card needed to start." />
+            <Step number={2} title="Set up your services" description="Add your services, set your prices, define your working hours." />
+            <Step number={3} title="Share your link" description="Send clients your booking page. They book, you get notified. Done." />
           </div>
         </div>
       </section>
 
-      {/* Pricing - Like Square but simpler */}
-      <section id="pricing" className="bg-gray-50 py-24">
+      {/* Pricing */}
+      <section className="bg-gray-50 py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Simple pricing</h2>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Pricing</h2>
             <p className="text-lg text-gray-600">Less than one grooming session per month</p>
           </div>
 
@@ -228,35 +174,22 @@ export default function HomePage() {
                 </div>
                 <p className="text-sm text-gray-500 mt-2">or $390/year (2 months free)</p>
               </div>
-
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <p className="text-sm text-green-800 font-medium">
-                  💰 Pays for itself with 1-2 bookings/month
-                </p>
-              </div>
-
               <ul className="space-y-4 mb-8">
                 <PricingFeature>Unlimited bookings</PricingFeature>
-                <PricingFeature>Unlimited customers & pets</PricingFeature>
+                <PricingFeature>Unlimited customers</PricingFeature>
                 <PricingFeature>Unlimited SMS reminders</PricingFeature>
                 <PricingFeature>Route optimization</PricingFeature>
-                <PricingFeature>Breed-based pricing rules</PricingFeature>
-                <PricingFeature>Stripe payment processing</PricingFeature>
+                <PricingFeature>Breed-based pricing</PricingFeature>
+                <PricingFeature>Payment processing</PricingFeature>
                 <PricingFeature>White-label booking page</PricingFeature>
-                <PricingFeature>Dashboard & analytics</PricingFeature>
-                <PricingFeature>Email support</PricingFeature>
+                <PricingFeature>Analytics dashboard</PricingFeature>
               </ul>
-
               <Link
                 href="/auth/signin"
                 className="block w-full bg-indigo-600 text-white text-center py-4 rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
               >
                 Start free trial
               </Link>
-
-              <p className="text-xs text-gray-500 text-center mt-4">
-                2.9% + 30¢ Stripe processing fee per transaction
-              </p>
             </div>
           </div>
         </div>
@@ -270,20 +203,12 @@ export default function HomePage() {
             <p className="text-xl text-indigo-100 mb-8">
               See how it works. No commitment required.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/auth/signin"
-                className="inline-block bg-white text-indigo-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-colors text-lg"
-              >
-                Get started free
-              </Link>
-              <Link
-                href="/b/demo-grooming"
-                className="inline-block bg-indigo-700 text-white px-8 py-4 rounded-xl font-semibold hover:bg-indigo-800 transition-colors text-lg border border-indigo-500"
-              >
-                Try demo first
-              </Link>
-            </div>
+            <Link
+              href="/auth/signin"
+              className="inline-block bg-white text-indigo-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-colors text-lg"
+            >
+              Get started free
+            </Link>
             <p className="text-sm text-indigo-200 mt-4">Free trial • No credit card required</p>
           </div>
         </div>
@@ -307,9 +232,9 @@ export default function HomePage() {
             <div>
               <h4 className="text-white font-semibold mb-3">Product</h4>
               <ul className="space-y-2 text-sm">
-                <li><Link href="#features" className="hover:text-white">Features</Link></li>
-                <li><Link href="#pricing" className="hover:text-white">Pricing</Link></li>
-                <li><Link href="/b/demo-grooming" className="hover:text-white">Live Demo</Link></li>
+                <li><Link href="#" className="hover:text-white">Features</Link></li>
+                <li><Link href="#" className="hover:text-white">Pricing</Link></li>
+                <li><Link href="/b/demo-grooming" className="hover:text-white">Demo</Link></li>
               </ul>
             </div>
             <div>
@@ -332,23 +257,6 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
-    </div>
-  )
-}
-
-function PreviewCard({ icon: Icon, metric, label, subtext }: any) {
-  return (
-    <div className="bg-white rounded-xl p-6 border border-gray-200">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-          <Icon className="h-5 w-5 text-indigo-600" />
-        </div>
-        <div>
-          <div className="text-2xl font-bold text-gray-900">{metric}</div>
-          <div className="text-sm font-medium text-gray-700">{label}</div>
-        </div>
-      </div>
-      <p className="text-xs text-gray-500">{subtext}</p>
     </div>
   )
 }
