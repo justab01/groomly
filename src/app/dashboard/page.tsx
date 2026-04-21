@@ -73,6 +73,25 @@ interface Stats {
   avgTicket: number
 }
 
+interface StatCardProps {
+  icon: React.ComponentType<{ className?: string }>
+  iconBg: string
+  label: string
+  value: string
+  trend?: string
+  trendUp?: boolean
+  subtext?: string
+}
+
+interface RecentBookingData {
+  id: string
+  scheduled_date: string
+  total_price_cents: number
+  status: string
+  customer: { id: string; name: string; phone: string; email: string | null }
+  pet: { id: string; name: string } | null
+}
+
 export default function DashboardPage() {
   const [business, setBusiness] = useState<Business | null>(null)
   const [todayBookings, setTodayBookings] = useState<BookingWithDetails[]>([])
@@ -103,7 +122,14 @@ export default function DashboardPage() {
           .eq('owner_email', user.email)
           .single()
 
-        if (businessError || !businessData) {
+        if (businessError) {
+          console.error('Error fetching business:', businessError)
+          setError('Failed to load business data. Please try again.')
+          setLoading(false)
+          return
+        }
+        if (!businessData) {
+          // No business found - will show onboarding state
           setLoading(false)
           return
         }
@@ -237,7 +263,7 @@ export default function DashboardPage() {
 
         // Aggregate customer data
         const customerMap = new Map<string, RecentCustomer>()
-        ;(recentBookings || []).forEach((booking: any) => {
+        ;(recentBookings as RecentBookingData[] || []).forEach((booking) => {
           if (!booking.customer) return
           const customerId = booking.customer.id
           const existing = customerMap.get(customerId)
@@ -717,7 +743,7 @@ export default function DashboardPage() {
   )
 }
 
-function StatCard({ icon: Icon, iconBg, label, value, trend, trendUp, subtext }: any) {
+function StatCard({ icon: Icon, iconBg, label, value, trend, trendUp, subtext }: StatCardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <div className="flex items-center justify-between mb-3">
