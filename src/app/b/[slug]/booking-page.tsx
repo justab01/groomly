@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { Calendar as CalendarIcon, Clock, DollarSign, Check, ChevronRight, Loader2, XCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Calendar as CalendarIcon, Clock, DollarSign, Check, ChevronRight, Loader2, XCircle, CreditCard, Lock } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 import { format } from 'date-fns'
+import StripePayment from '@/components/payment/stripe-payment-form'
 
 interface BookingPageProps {
   business: any
@@ -30,25 +31,73 @@ export default function BookingPage({ business }: BookingPageProps) {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Payment state
+  const [depositAmount, setDepositAmount] = useState(2500) // Default $25
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [paymentSucceeded, setPaymentSucceeded] = useState(false)
+  const [bookingId, setBookingId] = useState<string | null>(null)
+
   const availableTimes = [
     '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
     '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'
   ]
 
-  const handleSubmit = async () => {
-    if (!selectedService || !selectedDate || !selectedTime) {
-      setError('Missing required booking information. Please go back and complete all steps.')
-      return
+  // Fetch deposit amount from business settings
+  useEffect(() => {
+    async function fetchDepositAmount() {
+      if (business?.id) {
+        try {
+          const response = await fetch(`/api/business-settings?businessId=${business.id}`)
+          if (response.ok) {
+            const data = await response.json()
+            if (data?.deposit_amount_cents) {
+              setDepositAmount(data.deposit_amount_cents)
+            }
+          }
+        } catch (err) {
+          // Use default deposit amount
+          console.log('Using default deposit amount')
+        }
+      }
     }
-    if (!customerInfo.name || !customerInfo.phone || !customerInfo.address) {
-      setError('Missing customer information. Please go back and complete all required fields.')
-      return
-    }
-    if (!petInfo.name) {
-      setError('Missing pet name. Please go back and enter your pet\'s name.')
-      return
-    }
+    fetchDepositAmount()
+  }, [business?.id])
 
+  // Create payment intent when moving to payment step
+  useEffect(() => {
+    async function createPaymentIntent() {
+      if (step === 4 && !clientSecret && selectedService) {
+        setLoading(true)
+        try {
+          const response = await fetch('/api/stripe/create-payment-intent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amount: depositAmount,
+              bookingId: 'pending',
+              businessId: business.id,
+            }),
+          })
+
+          const data = await response.json()
+          if (data.clientSecret) {
+            setClientSecret(data.clientSecret)
+          } else {
+            setError('Failed to initialize payment. Please try again.')
+          }
+        } catch (err) {
+          setError('Payment setup failed. Please try again.')
+        } finally {
+          setLoading(false)
+        }
+      }
+    }
+    createPaymentIntent()
+  }, [step, clientSecret, selectedService, depositAmount, business.id])
+
+  // Create booking after successful payment
+  const handlePaymentSuccess = async () => {
+    setPaymentSucceeded(true)
     setLoading(true)
     setError(null)
 
@@ -59,10 +108,13 @@ export default function BookingPage({ business }: BookingPageProps) {
         body: JSON.stringify({
           business_id: business.id,
           service_id: selectedService.id,
-          scheduled_date: format(selectedDate, 'yyyy-MM-dd'),
+          scheduled_date: format(selectedDate!, 'yyyy-MM-dd'),
           scheduled_time: selectedTime,
           duration_minutes: selectedService.base_duration_minutes,
           total_price_cents: selectedService.base_price_cents,
+          deposit_paid_cents: depositAmount,
+          payment_status: 'paid',
+          status: 'confirmed',
           customer: {
             name: customerInfo.name,
             email: customerInfo.email,
@@ -80,16 +132,34 @@ export default function BookingPage({ business }: BookingPageProps) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Failed to create booking. Please try again.')
+        throw new Error(errorData.error || 'Failed to create booking')
       }
 
+      const data = await response.json()
+      setBookingId(data.booking?.id)
+      setStep(5) // Move to confirmation step
       setSuccess(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.')
+      setError(err instanceof Error ? err.message : 'Failed to create booking')
+      // Payment succeeded but booking failed - show warning
+      setStep(5)
     } finally {
       setLoading(false)
     }
   }
+
+  const handlePaymentError = (errorMsg: string) => {
+    setError(errorMsg)
+    setPaymentSucceeded(false)
+  }
+
+  const steps = [
+    { num: 1, label: 'Service' },
+    { num: 2, label: 'Date & Time' },
+    { num: 3, label: 'Your Info' },
+    { num: 4, label: 'Payment' },
+    { num: 5, label: 'Done' },
+  ]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -102,7 +172,7 @@ export default function BookingPage({ business }: BookingPageProps) {
             ) : (
               <div
                 className="h-12 w-12 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: business.primary_color }}
+                style={{ backgroundColor: business.primary_color || '#4f46e5' }}
               >
                 <span className="text-white font-bold text-xl">
                   {business.name.charAt(0)}
@@ -120,22 +190,17 @@ export default function BookingPage({ business }: BookingPageProps) {
       {/* Progress Steps */}
       <div className="max-w-3xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between">
-          {[
-            { num: 1, label: 'Service' },
-            { num: 2, label: 'Date & Time' },
-            { num: 3, label: 'Your Info' },
-            { num: 4, label: 'Confirm' },
-          ].map((s, i) => (
+          {steps.map((s, i) => (
             <div key={s.num} className="flex items-center">
               <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
                 step >= s.num ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
               }`}>
                 {step > s.num ? <Check className="h-4 w-4" /> : s.num}
               </div>
-              <span className={`ml-2 text-sm ${step >= s.num ? 'text-gray-900' : 'text-gray-500'}`}>
+              <span className={`ml-2 text-sm hidden sm:block ${step >= s.num ? 'text-gray-900' : 'text-gray-500'}`}>
                 {s.label}
               </span>
-              {i < 3 && <ChevronRight className="h-4 w-4 mx-2 text-gray-400" />}
+              {i < 4 && <ChevronRight className="h-4 w-4 mx-2 text-gray-400" />}
             </div>
           ))}
         </div>
@@ -185,6 +250,7 @@ export default function BookingPage({ business }: BookingPageProps) {
                   mode="single"
                   selected={selectedDate}
                   onSelect={setSelectedDate}
+                  disabled={(date) => date < new Date()}
                   className="rounded-md border"
                 />
               </div>
@@ -203,13 +269,21 @@ export default function BookingPage({ business }: BookingPageProps) {
                   </button>
                 ))}
               </div>
-              <button
-                onClick={() => setStep(3)}
-                disabled={!selectedTime}
-                className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
-              >
-                Continue
-              </button>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setStep(1)}
+                  className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={() => setStep(3)}
+                  disabled={!selectedTime}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Continue
+                </button>
+              </div>
             </div>
           )}
 
@@ -324,124 +398,131 @@ export default function BookingPage({ business }: BookingPageProps) {
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => setStep(4)}
-                className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700"
-              >
-                Continue
-              </button>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setStep(2)}
+                  className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={() => setStep(4)}
+                  disabled={!customerInfo.name || !customerInfo.phone || !customerInfo.address || !petInfo.name}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Continue to Payment
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Step 4: Confirmation */}
+          {/* Step 4: Payment */}
           {step === 4 && (
             <div>
-              {success ? (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Check className="h-8 w-8 text-green-600" />
+              <h2 className="text-xl font-bold mb-4">Secure Your Appointment</h2>
+              <p className="text-gray-600 mb-4">
+                A ${(depositAmount / 100).toFixed(2)} deposit is required to confirm your booking.
+                The remaining balance is due after the service.
+              </p>
+
+              {/* Booking Summary */}
+              <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-3">
+                <div className="flex items-center gap-3">
+                  <CalendarIcon className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="font-medium">{format(selectedDate!, 'EEEE, MMMM d, yyyy')}</p>
+                    <p className="text-sm text-gray-500">{selectedTime} • {selectedService?.base_duration_minutes} min</p>
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking Confirmed!</h2>
-                  <p className="text-gray-600 mb-6">
-                    Thank you, {customerInfo.name}! Your appointment has been scheduled.
-                  </p>
-                  <div className="bg-gray-50 rounded-xl p-4 text-left max-w-sm mx-auto space-y-3">
-                    <div className="flex items-center gap-3">
-                      <CalendarIcon className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <p className="font-medium">{format(selectedDate!, 'EEEE, MMMM d, yyyy')}</p>
-                        <p className="text-sm text-gray-500">{selectedTime}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <PawPrint className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <p className="font-medium">{selectedService?.name}</p>
-                        <p className="text-sm text-gray-500">for {petInfo.name}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <DollarSign className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <p className="font-medium">Total: ${(selectedService?.base_price_cents / 100).toFixed(2)}</p>
-                        <p className="text-sm text-gray-500">Deposit: $25.00</p>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-6">
-                    A confirmation email will be sent to {customerInfo.email || 'your email'}.
-                  </p>
                 </div>
-              ) : (
-                <>
-                  <h2 className="text-xl font-bold mb-4">Confirm Booking</h2>
-                  {error && (
-                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-                      <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-red-800">Booking Failed</p>
-                        <p className="text-sm text-red-600">{error}</p>
-                      </div>
-                    </div>
-                  )}
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <CalendarIcon className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <p className="font-medium">{format(selectedDate!, 'EEEE, MMMM d, yyyy')}</p>
-                        <p className="text-sm text-gray-500">{selectedTime} • {selectedService?.base_duration_minutes} min</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <PawPrint className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <p className="font-medium">{selectedService?.name}</p>
-                        <p className="text-sm text-gray-500">${(selectedService?.base_price_cents / 100).toFixed(2)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <p className="font-medium">{petInfo.name}</p>
-                        <p className="text-sm text-gray-500">{petInfo.breed} {petInfo.weight && `• ${petInfo.weight} lbs`}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <DollarSign className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <p className="font-medium">Total: ${(selectedService?.base_price_cents / 100).toFixed(2)}</p>
-                        <p className="text-sm text-gray-500">Deposit due: $25.00</p>
-                      </div>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="font-medium">{selectedService?.name}</p>
+                    <p className="text-sm text-gray-500">for {petInfo.name}</p>
                   </div>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={loading}
-                    className="w-full mt-6 bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        Creating booking...
-                      </>
-                    ) : (
-                      'Book Now - Pay Deposit'
-                    )}
-                  </button>
-                </>
+                </div>
+                <div className="flex items-center gap-3">
+                  <DollarSign className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="font-medium">Total: ${(selectedService?.base_price_cents / 100).toFixed(2)}</p>
+                    <p className="text-sm text-gray-500">Deposit: ${(depositAmount / 100).toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                  <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-red-800">Payment Failed</p>
+                    <p className="text-sm text-red-600">{error}</p>
+                  </div>
+                </div>
+              )}
+
+              {loading && !clientSecret ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                  <span className="ml-2 text-gray-500">Preparing payment...</span>
+                </div>
+              ) : clientSecret && (
+                <StripePayment
+                  clientSecret={clientSecret}
+                  publishableKey={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder'}
+                  amount={depositAmount}
+                  onSuccess={handlePaymentSuccess}
+                  onError={handlePaymentError}
+                  onCancel={() => setStep(3)}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Step 5: Confirmation */}
+          {step === 5 && (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="h-8 w-8 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking Confirmed!</h2>
+              <p className="text-gray-600 mb-6">
+                Thank you, {customerInfo.name}! Your appointment has been scheduled.
+              </p>
+              <div className="bg-gray-50 rounded-xl p-4 text-left max-w-sm mx-auto space-y-3">
+                <div className="flex items-center gap-3">
+                  <CalendarIcon className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="font-medium">{format(selectedDate!, 'EEEE, MMMM d, yyyy')}</p>
+                    <p className="text-sm text-gray-500">{selectedTime}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="font-medium">{selectedService?.name}</p>
+                    <p className="text-sm text-gray-500">for {petInfo.name}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <DollarSign className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="font-medium">Total: ${(selectedService?.base_price_cents / 100).toFixed(2)}</p>
+                    <p className="text-sm text-gray-500">Deposit paid: ${(depositAmount / 100).toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-gray-500 mt-6">
+                A confirmation email will be sent to {customerInfo.email || 'your email'}.
+              </p>
+              {error && (
+                <p className="text-sm text-amber-600 mt-2">
+                  Note: {error}. Your payment was processed - please contact us if you don't receive confirmation.
+                </p>
               )}
             </div>
           )}
         </div>
       </main>
     </div>
-  )
-}
-
-function PawPrint({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-      <path d="M12 2C10.9 2 10 2.9 10 4S10.9 6 12 6 14 5.1 14 4 13.1 2 12 2M8 5C6.9 5 6 5.9 6 7S6.9 9 8 9 10 8.1 10 7 9.1 5 8 5M16 5C14.9 5 14 5.9 14 7S14.9 9 16 9 18 8.1 18 7 17.1 5 16 5M7 10C5.34 10 4 11.34 4 13C4 14.08 4.58 15.03 5.44 15.59C4.6 16.49 4 17.67 4 19C4 20.66 5.34 22 7 22C8.04 22 8.95 21.46 9.5 20.69C10.21 21.45 11.24 22 12.5 22C14.25 22 15.71 20.84 16.13 19.19C17.84 18.78 19 17.26 19 15.5C19 14.21 18.34 13.08 17.34 12.41C17.78 11.73 18 10.93 18 10C18 8.34 16.66 7 15 7C14.19 7 13.45 7.32 12.91 7.83C12.59 7.3 12.11 6.86 11.53 6.56C11.17 7.25 10.5 7.83 9.69 8.13C9.27 7.47 8.57 7 7.75 7H7M12 10C12.55 10 13 10.45 13 11S12.55 12 12 12 11 11.55 11 11 11.45 10 12 10M8 11C8.55 11 9 11.45 9 12S8.55 13 8 13 7 12.55 7 12 7.45 11 8 11M16 11C16.55 11 17 11.45 17 12S16.55 13 16 13 15 12.55 15 12 15.45 11 16 11M12.5 13C13.33 13 14 13.67 14 14.5C14 14.83 13.89 15.13 13.71 15.38C13.9 15.75 14 16.16 14 16.5C14 17.88 12.88 19 11.5 19C10.95 19 10.44 18.82 10.03 18.5C9.62 18.82 9.11 19 8.5 19C7.12 19 6 17.88 6 16.5C6 15.12 7.12 14 8.5 14C8.84 14 9.16 14.06 9.47 14.18C9.84 13.43 10.61 12.91 11.5 12.91C11.71 12.91 11.91 12.94 12.11 12.99C12.17 12.99 12.33 13 12.5 13Z" />
-    </svg>
   )
 }
