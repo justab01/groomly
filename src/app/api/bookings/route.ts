@@ -9,6 +9,43 @@ function getSupabase() {
   )
 }
 
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00')
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+async function sendConfirmationEmail(booking: any, customer: any, pet: any, service: any, business: any) {
+  if (!customer?.email) return
+
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/notifications/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'confirmation',
+        to: customer.email,
+        subject: `Booking Confirmed - ${formatDate(booking.scheduled_date)}`,
+        booking: {
+          customer_name: customer.name,
+          pet_name: pet?.name,
+          scheduled_date: formatDate(booking.scheduled_date),
+          scheduled_time: booking.scheduled_time,
+          service_name: service?.name || 'Grooming Service',
+          total_price_cents: booking.total_price_cents,
+          business_name: business?.name || 'Your Groomer',
+        },
+      }),
+    })
+  } catch (emailError) {
+    console.error('Failed to send confirmation email:', emailError)
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const booking = await request.json()
@@ -19,9 +56,15 @@ export async function POST(request: NextRequest) {
     const petId = uuidv4()
     const bookingId = uuidv4()
 
-    // Create or find customer
-    if (booking.customer) {
-      // Check if customer exists by phone
+    // Fetch service and business info for email
+    const [{ data: service }, { data: business }] = await Promise.all([
+      supabase.from('services').select('name').eq('id', booking.service_id).single(),
+      supabase.from('businesses').select('name').eq('id', booking.business_id).single(),
+    ])
+
+    // Check if customer exists by phone
+    let existingCustomerId: string | null = null
+    if (booking.customer?.phone) {
       const { data: existingCustomer } = await supabase
         .from('customers')
         .select('id')
@@ -30,7 +73,8 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (existingCustomer) {
-        // Use existing customer
+        existingCustomerId = existingCustomer.id
+        // Update existing customer
         await supabase
           .from('customers')
           .update({
@@ -38,55 +82,12 @@ export async function POST(request: NextRequest) {
             email: booking.customer.email || null,
             address: booking.customer.address,
           })
-          .eq('id', existingCustomer.id)
-        // Use existing customer ID
-        const existingId = existingCustomer.id
-
-        // Create the booking
-        const { data, error } = await supabase
-          .from('bookings')
-          .insert([
-            {
-              id: bookingId,
-              business_id: booking.business_id,
-              customer_id: existingId,
-              pet_id: petId,
-              service_id: booking.service_id,
-              scheduled_date: booking.scheduled_date,
-              scheduled_time: booking.scheduled_time,
-              duration_minutes: booking.duration_minutes,
-              total_price_cents: booking.total_price_cents,
-              deposit_paid_cents: booking.deposit_paid_cents || 0,
-              status: booking.status || 'pending',
-              payment_status: booking.payment_status || 'pending',
-              notes: booking.notes,
-            },
-          ])
-          .select()
-          .single()
-
-        if (error) throw error
-
-        // Create pet
-        if (booking.pet) {
-          await supabase
-            .from('pets')
-            .insert([{
-              id: petId,
-              customer_id: existingId,
-              name: booking.pet.name,
-              breed: booking.pet.breed || null,
-              weight_lbs: booking.pet.weight || null,
-              notes: booking.pet.notes || null,
-            }])
-        }
-
-        return NextResponse.json({ booking: data })
+          .eq('id', existingCustomerId)
       }
     }
 
-    // Create new customer
-    if (booking.customer) {
+    // Create new customer if not exists
+    if (!existingCustomerId && booking.customer) {
       await supabase
         .from('customers')
         .insert([{
@@ -99,13 +100,15 @@ export async function POST(request: NextRequest) {
         }])
     }
 
+    const finalCustomerId = existingCustomerId || customerId
+
     // Create pet
     if (booking.pet) {
       await supabase
         .from('pets')
         .insert([{
           id: petId,
-          customer_id: customerId,
+          customer_id: finalCustomerId,
           name: booking.pet.name,
           breed: booking.pet.breed || null,
           weight_lbs: booking.pet.weight || null,
@@ -120,7 +123,7 @@ export async function POST(request: NextRequest) {
         {
           id: bookingId,
           business_id: booking.business_id,
-          customer_id: customerId,
+          customer_id: finalCustomerId,
           pet_id: petId,
           service_id: booking.service_id,
           scheduled_date: booking.scheduled_date,
@@ -138,8 +141,8 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error
 
-    // TODO: Send confirmation email (Sprint 1 task)
-    // await sendBookingConfirmationEmail(data, booking.customer, booking.pet)
+    // Send confirmation email
+    await sendConfirmationEmail(booking, booking.customer, booking.pet, service, business)
 
     return NextResponse.json({ booking: data })
   } catch (error) {
