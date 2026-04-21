@@ -171,7 +171,7 @@ export default function DashboardPage() {
           .in('status', ['pending', 'confirmed'])
           .order('scheduled_time', { ascending: true })
 
-        setTodayBookings((todayBookingsData || []) as BookingWithDetails[])
+        setTodayBookings((todayBookingsData || []) as unknown as BookingWithDetails[])
 
         // Fetch upcoming bookings (next 7 days, excluding today)
         const { data: upcomingBookingsData } = await supabase
@@ -196,7 +196,7 @@ export default function DashboardPage() {
           .order('scheduled_time', { ascending: true })
           .limit(10)
 
-        setUpcomingBookings((upcomingBookingsData || []) as BookingWithDetails[])
+        setUpcomingBookings((upcomingBookingsData || []) as unknown as BookingWithDetails[])
 
         // Fetch stats
         // Today's revenue and bookings
@@ -263,7 +263,7 @@ export default function DashboardPage() {
 
         // Aggregate customer data
         const customerMap = new Map<string, RecentCustomer>()
-        ;(recentBookings as RecentBookingData[] || []).forEach((booking) => {
+        ;(recentBookings as unknown as RecentBookingData[] || []).forEach((booking) => {
           if (!booking.customer) return
           const customerId = booking.customer.id
           const existing = customerMap.get(customerId)
@@ -717,22 +717,22 @@ export default function DashboardPage() {
                 <div>
                   <div className="flex items-center justify-between text-sm mb-1">
                     <span className="text-indigo-100">Revenue</span>
-                    <span className="font-semibold">${stats.weekRevenue}</span>
+                    <span className="font-semibold">${stats?.weekRevenue || 0}</span>
                   </div>
                   <div className="w-full bg-indigo-800 rounded-full h-2">
-                    <div className="bg-white rounded-full h-2" style={{ width: `${Math.min((stats.weekRevenue / 4500) * 100, 100)}%` }}></div>
+                    <div className="bg-white rounded-full h-2" style={{ width: `${Math.min(((stats?.weekRevenue || 0) / 4500) * 100, 100)}%` }}></div>
                   </div>
-                  <p className="text-xs text-indigo-200 mt-1">{Math.round((stats.weekRevenue / 4500) * 100)}% of $4,500 goal</p>
+                  <p className="text-xs text-indigo-200 mt-1">{Math.round(((stats?.weekRevenue || 0) / 4500) * 100)}% of $4,500 goal</p>
                 </div>
                 <div>
                   <div className="flex items-center justify-between text-sm mb-1">
                     <span className="text-indigo-100">Bookings</span>
-                    <span className="font-semibold">{stats.weekBookings}</span>
+                    <span className="font-semibold">{stats?.weekBookings || 0}</span>
                   </div>
                   <div className="w-full bg-indigo-800 rounded-full h-2">
-                    <div className="bg-white rounded-full h-2" style={{ width: `${Math.min((stats.weekBookings / 40) * 100, 100)}%` }}></div>
+                    <div className="bg-white rounded-full h-2" style={{ width: `${Math.min(((stats?.weekBookings || 0) / 40) * 100, 100)}%` }}></div>
                   </div>
-                  <p className="text-xs text-indigo-200 mt-1">{Math.round((stats.weekBookings / 40) * 100)}% of 40 booking goal</p>
+                  <p className="text-xs text-indigo-200 mt-1">{Math.round(((stats?.weekBookings || 0) / 40) * 100)}% of 40 booking goal</p>
                 </div>
               </div>
             </div>
