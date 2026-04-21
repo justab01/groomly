@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar as CalendarIcon, Clock, DollarSign, Check, ChevronRight } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock, DollarSign, Check, ChevronRight, Loader2, XCircle } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 import { format } from 'date-fns'
 
@@ -26,6 +26,9 @@ export default function BookingPage({ business }: BookingPageProps) {
     weight: '',
     notes: '',
   })
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const availableTimes = [
     '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
@@ -33,15 +36,59 @@ export default function BookingPage({ business }: BookingPageProps) {
   ]
 
   const handleSubmit = async () => {
-    // Will integrate with API endpoint
-    console.log('Booking:', {
-      business_id: business.id,
-      service: selectedService,
-      date: selectedDate,
-      time: selectedTime,
-      customer: customerInfo,
-      pet: petInfo,
-    })
+    if (!selectedService || !selectedDate || !selectedTime) {
+      setError('Missing required booking information. Please go back and complete all steps.')
+      return
+    }
+    if (!customerInfo.name || !customerInfo.phone || !customerInfo.address) {
+      setError('Missing customer information. Please go back and complete all required fields.')
+      return
+    }
+    if (!petInfo.name) {
+      setError('Missing pet name. Please go back and enter your pet\'s name.')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_id: business.id,
+          service_id: selectedService.id,
+          scheduled_date: format(selectedDate, 'yyyy-MM-dd'),
+          scheduled_time: selectedTime,
+          duration_minutes: selectedService.base_duration_minutes,
+          total_price_cents: selectedService.base_price_cents,
+          customer: {
+            name: customerInfo.name,
+            email: customerInfo.email,
+            phone: customerInfo.phone,
+            address: customerInfo.address,
+          },
+          pet: {
+            name: petInfo.name,
+            breed: petInfo.breed || '',
+            weight: petInfo.weight ? parseInt(petInfo.weight) : 0,
+            notes: petInfo.notes || '',
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to create booking. Please try again.')
+      }
+
+      setSuccess(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -289,43 +336,100 @@ export default function BookingPage({ business }: BookingPageProps) {
           {/* Step 4: Confirmation */}
           {step === 4 && (
             <div>
-              <h2 className="text-xl font-bold mb-4">Confirm Booking</h2>
-              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <CalendarIcon className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="font-medium">{format(selectedDate!, 'EEEE, MMMM d, yyyy')}</p>
-                    <p className="text-sm text-gray-500">{selectedTime} • {selectedService?.base_duration_minutes} min</p>
+              {success ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="h-8 w-8 text-green-600" />
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <PawPrint className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="font-medium">{selectedService?.name}</p>
-                    <p className="text-sm text-gray-500">${(selectedService?.base_price_cents / 100).toFixed(2)}</p>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking Confirmed!</h2>
+                  <p className="text-gray-600 mb-6">
+                    Thank you, {customerInfo.name}! Your appointment has been scheduled.
+                  </p>
+                  <div className="bg-gray-50 rounded-xl p-4 text-left max-w-sm mx-auto space-y-3">
+                    <div className="flex items-center gap-3">
+                      <CalendarIcon className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="font-medium">{format(selectedDate!, 'EEEE, MMMM d, yyyy')}</p>
+                        <p className="text-sm text-gray-500">{selectedTime}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <PawPrint className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="font-medium">{selectedService?.name}</p>
+                        <p className="text-sm text-gray-500">for {petInfo.name}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <DollarSign className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="font-medium">Total: ${(selectedService?.base_price_cents / 100).toFixed(2)}</p>
+                        <p className="text-sm text-gray-500">Deposit: $25.00</p>
+                      </div>
+                    </div>
                   </div>
+                  <p className="text-sm text-gray-500 mt-6">
+                    A confirmation email will be sent to {customerInfo.email || 'your email'}.
+                  </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="font-medium">{petInfo.name}</p>
-                    <p className="text-sm text-gray-500">{petInfo.breed} {petInfo.weight && `• ${petInfo.weight} lbs`}</p>
+              ) : (
+                <>
+                  <h2 className="text-xl font-bold mb-4">Confirm Booking</h2>
+                  {error && (
+                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                      <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-red-800">Booking Failed</p>
+                        <p className="text-sm text-red-600">{error}</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <CalendarIcon className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="font-medium">{format(selectedDate!, 'EEEE, MMMM d, yyyy')}</p>
+                        <p className="text-sm text-gray-500">{selectedTime} • {selectedService?.base_duration_minutes} min</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <PawPrint className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="font-medium">{selectedService?.name}</p>
+                        <p className="text-sm text-gray-500">${(selectedService?.base_price_cents / 100).toFixed(2)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="font-medium">{petInfo.name}</p>
+                        <p className="text-sm text-gray-500">{petInfo.breed} {petInfo.weight && `• ${petInfo.weight} lbs`}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <DollarSign className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="font-medium">Total: ${(selectedService?.base_price_cents / 100).toFixed(2)}</p>
+                        <p className="text-sm text-gray-500">Deposit due: $25.00</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <DollarSign className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="font-medium">Total: ${(selectedService?.base_price_cents / 100).toFixed(2)}</p>
-                    <p className="text-sm text-gray-500">Deposit due: $25.00</p>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={handleSubmit}
-                className="w-full mt-6 bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700"
-              >
-                Book Now - Pay Deposit
-              </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className="w-full mt-6 bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Creating booking...
+                      </>
+                    ) : (
+                      'Book Now - Pay Deposit'
+                    )}
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
