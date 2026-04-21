@@ -691,22 +691,22 @@ export default function DashboardPage() {
                 <div>
                   <div className="flex items-center justify-between text-sm mb-1">
                     <span className="text-indigo-100">Revenue</span>
-                    <span className="font-semibold">${(stats?.weekRevenue || 0).toLocaleString()}</span>
+                    <span className="font-semibold">${stats.weekRevenue}</span>
                   </div>
                   <div className="w-full bg-indigo-800 rounded-full h-2">
-                    <div className="bg-white rounded-full h-2" style={{ width: '65%' }}></div>
+                    <div className="bg-white rounded-full h-2" style={{ width: `${Math.min((stats.weekRevenue / 4500) * 100, 100)}%` }}></div>
                   </div>
-                  <p className="text-xs text-indigo-200 mt-1">65% of weekly goal</p>
+                  <p className="text-xs text-indigo-200 mt-1">{Math.round((stats.weekRevenue / 4500) * 100)}% of $4,500 goal</p>
                 </div>
                 <div>
                   <div className="flex items-center justify-between text-sm mb-1">
                     <span className="text-indigo-100">Bookings</span>
-                    <span className="font-semibold">{stats?.weekBookings || 0}</span>
+                    <span className="font-semibold">{stats.weekBookings}</span>
                   </div>
                   <div className="w-full bg-indigo-800 rounded-full h-2">
-                    <div className="bg-white rounded-full h-2" style={{ width: '70%' }}></div>
+                    <div className="bg-white rounded-full h-2" style={{ width: `${Math.min((stats.weekBookings / 40) * 100, 100)}%` }}></div>
                   </div>
-                  <p className="text-xs text-indigo-200 mt-1">70% of weekly goal</p>
+                  <p className="text-xs text-indigo-200 mt-1">{Math.round((stats.weekBookings / 40) * 100)}% of 40 booking goal</p>
                 </div>
               </div>
             </div>
