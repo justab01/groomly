@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calendar as CalendarIcon, Clock, DollarSign, Check, ChevronRight, Loader2, XCircle, CreditCard, Lock } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock, DollarSign, Check, ChevronRight, Loader2, XCircle, CreditCard, Lock, Sparkles, Heart, Dog } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 import { format } from 'date-fns'
+import { motion, AnimatePresence } from 'framer-motion'
 import StripePayment from '@/components/payment/stripe-payment-form'
 
 interface BookingPageProps {
@@ -480,46 +481,123 @@ export default function BookingPage({ business }: BookingPageProps) {
 
           {/* Step 5: Confirmation */}
           {step === 5 && (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check className="h-8 w-8 text-green-600" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className="text-center py-8"
+            >
+              {/* Confetti effect */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                {[...Array(20)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{
+                      y: -20,
+                      x: Math.random() * 400 - 200,
+                      rotate: 0,
+                      opacity: 1
+                    }}
+                    animate={{
+                      y: 500,
+                      rotate: 360 * (i % 2 === 0 ? 1 : -1),
+                      opacity: 0
+                    }}
+                    transition={{
+                      duration: 2 + Math.random(),
+                      delay: Math.random() * 0.5,
+                      ease: "easeOut"
+                    }}
+                    className="absolute top-0 left-1/2"
+                    style={{
+                      width: Math.random() > 0.5 ? 10 : 6,
+                      height: Math.random() > 0.5 ? 10 : 6,
+                      borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+                      backgroundColor: ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6'][i % 5]
+                    }}
+                  />
+                ))}
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking Confirmed!</h2>
-              <p className="text-gray-600 mb-6">
-                Thank you, {customerInfo.name}! Your appointment has been scheduled.
-              </p>
-              <div className="bg-gray-50 rounded-xl p-4 text-left max-w-sm mx-auto space-y-3">
-                <div className="flex items-center gap-3">
-                  <CalendarIcon className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="font-medium">{format(selectedDate!, 'EEEE, MMMM d, yyyy')}</p>
-                    <p className="text-sm text-gray-500">{selectedTime}</p>
+
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", duration: 0.5, delay: 0.2 }}
+                className="w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg"
+              >
+                <Check className="h-10 w-10 text-white" />
+              </motion.div>
+
+              <motion.h2
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-2xl font-bold text-gray-900 mb-2"
+              >
+                You're all set! 🎉
+              </motion.h2>
+
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-gray-600 mb-6"
+              >
+                <span className="font-semibold">{petInfo.name}</span> is going to look amazing!
+                <br />
+                <span className="text-sm">We'll see you on {format(selectedDate!, 'EEEE')}.</span>
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl p-6 text-left max-w-sm mx-auto border border-pink-100"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <Dog className="h-5 w-5 text-pink-500" />
+                  <span className="font-medium text-gray-900">Appointment Details</span>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <CalendarIcon className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="font-medium text-gray-900">{format(selectedDate!, 'EEEE, MMMM d, yyyy')}</p>
+                      <p className="text-sm text-gray-500">{selectedTime}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Heart className="h-5 w-5 text-pink-400" />
+                    <div>
+                      <p className="font-medium text-gray-900">{selectedService?.name}</p>
+                      <p className="text-sm text-gray-500">for {petInfo.name}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="h-5 w-5 text-purple-400" />
+                    <div>
+                      <p className="font-medium text-gray-900">${(selectedService?.base_price_cents / 100).toFixed(2)} total</p>
+                      <p className="text-sm text-gray-500">${(depositAmount / 100).toFixed(2)} deposit paid</p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="font-medium">{selectedService?.name}</p>
-                    <p className="text-sm text-gray-500">for {petInfo.name}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <DollarSign className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="font-medium">Total: ${(selectedService?.base_price_cents / 100).toFixed(2)}</p>
-                    <p className="text-sm text-gray-500">Deposit paid: ${(depositAmount / 100).toFixed(2)}</p>
-                  </div>
-                </div>
-              </div>
-              <p className="text-sm text-gray-500 mt-6">
-                A confirmation email will be sent to {customerInfo.email || 'your email'}.
-              </p>
+              </motion.div>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="text-sm text-gray-500 mt-6"
+              >
+                📧 Confirmation sent to {customerInfo.email || 'your email'}
+              </motion.p>
+
               {error && (
                 <p className="text-sm text-amber-600 mt-2">
                   Note: {error}. Your payment was processed - please contact us if you don't receive confirmation.
                 </p>
               )}
-            </div>
+            </motion.div>
           )}
         </div>
       </main>
