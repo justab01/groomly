@@ -1,8 +1,15 @@
 import { createBrowserClient } from '@supabase/ssr'
 
 export function createClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !key || url === 'https://dummy.supabase.co') {
+    console.warn('Supabase environment variables not configured. Using demo mode.')
+  }
+
   return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dummy.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'dummy-key'
+    url || 'https://dummy.supabase.co',
+    key || 'dummy-key'
   )
 }
