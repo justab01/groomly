@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { PawPrint, Check, ArrowRight, Loader2, AlertCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { ImageUpload } from '@/components/upload/image-upload'
 
 interface ServiceConfig {
   name: string
@@ -36,6 +37,7 @@ export default function OnboardingPage() {
     phone: '',
     city: '',
     state: '',
+    logoUrl: '',
     services: DEFAULT_SERVICES
   })
 
@@ -147,6 +149,7 @@ export default function OnboardingPage() {
           phone: formData.phone.trim(),
           city: formData.city.trim(),
           state: formData.state.trim(),
+          logo_url: formData.logoUrl || null,
           primary_color: '#6366F1' // Default indigo color
         })
         .select()
@@ -262,6 +265,21 @@ export default function OnboardingPage() {
             </div>
 
             <div className="space-y-4">
+              {/* Logo Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Business Logo
+                </label>
+                <p className="text-sm text-gray-500 mb-2">Upload your logo to personalize your booking page</p>
+                <ImageUpload
+                  value={formData.logoUrl}
+                  onChange={(url) => setFormData({ ...formData, logoUrl: url })}
+                  folder="logos"
+                  bucket="groomly-uploads"
+                  className="w-full"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Business Name *
